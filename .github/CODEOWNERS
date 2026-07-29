@@ -1,0 +1,5 @@
+# Code owners are automatically requested for review on pull requests.
+# Replace the owner below with the appropriate user or @org/team handle.
+# Docs: https://docs.github.com/articles/about-code-owners
+
+* @energon-a-secas

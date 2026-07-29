@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://logscope.neorgon.com/sitemap.xml

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LogScope | HWiNFO log visualizer</title>
+  <meta name="description" content="Drop a HWiNFO CSV to visualize GPU sensors, compare load baselines, translate cryptic metrics, and spot the crash — all in your browser, nothing uploaded">
+  <meta property="og:title" content="LogScope: HWiNFO log visualizer">
+  <meta property="og:description" content="Visualize hardware logs, compare load baselines, and find the crash — 100% local in your browser">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://logscope.neorgon.com/">
+  <meta property="og:site_name" content="Neorgon">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LogScope: HWiNFO log visualizer">
+  <meta name="twitter:description" content="Visualize hardware logs and find the crash, all in your browser">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://logscope.neorgon.com/">
+  <meta property="og:locale" content="en_US">
+  <meta name="theme-color" content="#040714">
+  <link rel="icon" type="image/x-icon" href="https://pub-b597cd281a384f98a47e1f043a6c4160.r2.dev/v1.0.0/favicon.ico" />
+  <link rel="stylesheet" href="app/css/style.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "LogScope",
+    "description": "Browser-based HWiNFO CSV log visualizer with load baselines, metric translation, and GPU crash detection.",
+    "url": "https://logscope.neorgon.com/",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Organization", "name": "Neorgon", "url": "https://neorgon.com/" }
+  }
+  </script>
+</head>
+<body>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="header-bar">
+    <div class="header-logo">
+      <a href="https://neorgon.com/" target="_blank" rel="noopener noreferrer">
+        <img src="https://pub-b597cd281a384f98a47e1f043a6c4160.r2.dev/v1.0.0/energon-classic-logo.png" class="header-logo-img" alt="Logo">
+      </a>
+      <a href="./" class="header-title-link">
+        <h1>LogScope</h1>
+        <div class="header-subtitle">HWiNFO log visualizer &amp; crash insights</div>
+      </a>
+    </div>
+    <a class="header-home" href="https://neorgon.com/" title="neorgon.com" aria-label="Neorgon home">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+      </svg>
+    </a>
+  </header>
+
+  <main id="main">
+    <div class="container container--wide stack">
+
+      <!-- File bar (shown after load) -->
+      <div class="file-meta" id="fileBar" hidden></div>
+
+      <!-- Tabs -->
+      <nav class="tabs" aria-label="Views">
+        <button class="tab active" data-view="upload">Upload</button>
+        <button class="tab" data-view="overview" data-requires-data hidden disabled>Overview</button>
+        <button class="tab" data-view="charts" data-requires-data hidden disabled>Charts</button>
+        <button class="tab" data-view="baselines" data-requires-data hidden disabled>Baselines</button>
+        <button class="tab" data-view="translate">Translate</button>
+        <button class="tab" data-view="tutorials">Tutorials</button>
+        <button class="btn btn--ghost btn--sm" id="resetBtn" style="margin-left:auto" hidden>Load another</button>
+      </nav>
+
+      <!-- ── Upload view ── -->
+      <section class="view" data-view="upload" aria-label="Upload">
+        <div class="stack">
+          <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload a HWiNFO CSV file">
+            <svg class="dropzone__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v13"/>
+            </svg>
+            <div class="dropzone__title">Drop your HWiNFO CSV here</div>
+            <div class="dropzone__hint">or click to choose a file. Everything runs locally in your browser — nothing is uploaded anywhere.</div>
+          </div>
+          <input type="file" id="fileInput" accept=".csv,.CSV,text/csv" hidden>
+
+          <div class="card">
+            <div class="section__titles">
+              <h2 class="section__title">How it works</h2>
+              <p class="section__lead">
+                LogScope reads a HWiNFO sensor log, auto-detects the GPU/CPU/PCIe metrics, and gives you four things:
+                an <strong>Overview</strong> with plain-language insights and a crash verdict, interactive <strong>Charts</strong>,
+                <strong>Baselines</strong> that bucket samples into idle/low/medium/high load, and a <strong>Translate</strong> glossary.
+                New to the tools? Start with the <strong>Tutorials</strong> tab.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Overview view ── -->
+      <section class="view" data-view="overview" hidden aria-label="Overview">
+        <div class="stack">
+          <section class="section">
+            <div class="section__titles">
+              <h2 class="section__title">Insights</h2>
+              <p class="section__lead">Automatic read of the log: crash signature, PCIe stability, power delivery, and thermals.</p>
+            </div>
+            <div id="insights"></div>
+          </section>
+          <section class="section">
+            <div class="section__titles">
+              <h2 class="section__title">Key numbers</h2>
+              <p class="section__lead">Peaks and lows for the sensors that matter most. Colored borders flag values worth a second look.</p>
+            </div>
+            <div class="stat-grid" id="statGrid"></div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ── Charts view ── -->
+      <section class="view" data-view="charts" hidden aria-label="Charts">
+        <section class="section">
+          <div class="section__titles">
+            <h2 class="section__title">Time series</h2>
+            <p class="section__lead">
+              Each line is normalized to its own range (0–100% of that sensor's min–max), so different units overlay cleanly.
+              Background shading shows the load zone; the dashed marker is where a hang was detected. Hover for exact values.
+            </p>
+          </div>
+          <div class="chips" id="chips"></div>
+          <div class="card" style="padding:var(--space-4)">
+            <div class="chart-wrap">
+              <canvas class="chart-canvas" id="chartCanvas"></canvas>
+              <div class="chart-tooltip" id="chartTooltip"></div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ── Baselines view ── -->
+      <section class="view" data-view="baselines" hidden aria-label="Baselines">
+        <div class="stack">
+          <section class="section">
+            <div class="section__titles">
+              <h2 class="section__title">Load distribution</h2>
+              <p class="section__lead" id="baselineBasis">Load zones computed from GPU utilization.</p>
+            </div>
+            <div class="stat-grid" id="zoneSummary"></div>
+          </section>
+          <section class="section">
+            <div class="section__titles">
+              <h2 class="section__title">Baseline by load zone</h2>
+              <p class="section__lead">Average <span class="muted">/ peak</span> for each sensor, split by how hard the GPU was working. Use it to tell "normal under load" from "something's off."</p>
+            </div>
+            <div class="table-scroll">
+              <table class="data">
+                <thead><tr>
+                  <th>Sensor</th>
+                  <th><span class="zone-pill zone-idle">Idle</span></th>
+                  <th><span class="zone-pill zone-low">Low</span></th>
+                  <th><span class="zone-pill zone-medium">Medium</span></th>
+                  <th><span class="zone-pill zone-high">High</span></th>
+                </tr></thead>
+                <tbody id="baselineTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ── Translate view ── -->
+      <section class="view" data-view="translate" hidden aria-label="Translate">
+        <section class="section">
+          <div class="section__titles">
+            <h2 class="section__title">Translate the metrics</h2>
+            <p class="section__lead">What every sensor actually means, what's normal, and what should worry you. Load a log and matching rows get tagged <span class="badge badge--gpu">detected</span> with your values.</p>
+          </div>
+          <input type="search" class="search-input" id="glossarySearch" placeholder="Search metrics… (e.g. junction, 12V, recovery)">
+          <div class="table-scroll">
+            <table class="data">
+              <thead><tr><th>Sensor</th><th>Plain meaning</th><th>Normal &amp; red flags</th></tr></thead>
+              <tbody id="glossaryTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- ── Tutorials view ── -->
+      <section class="view" data-view="tutorials" hidden aria-label="Tutorials">
+        <section class="section">
+          <div class="section__titles">
+            <h2 class="section__title">Tool tutorials</h2>
+            <p class="section__lead">Short, no-fluff guides for the tools that produce and confirm these logs. Each ends with the one thing to look for.</p>
+          </div>
+          <div class="accordion" id="tutorials"></div>
+        </section>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="info-footer">
+    100% local — your logs never leave your machine · Part of <a class="footer-link" href="https://neorgon.com/">Neorgon</a>
+  </footer>
+
+  <script src="app/js/glossary.js"></script>
+  <script src="app/js/parse.js"></script>
+  <script src="app/js/analyze.js"></script>
+  <script src="app/js/charts.js"></script>
+  <script src="app/js/ui.js"></script>
+  <script src="app/js/app.js"></script>
+</body>
+</html>
