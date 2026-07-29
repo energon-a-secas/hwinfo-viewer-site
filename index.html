@@ -83,6 +83,14 @@
           </div>
           <input type="file" id="fileInput" accept=".csv,.CSV,text/csv" hidden>
 
+          <section class="section">
+            <div class="section__titles">
+              <h2 class="section__title">No log handy? Try a real one</h2>
+              <p class="section__lead">These are trimmed from actual HWiNFO crash logs (sensor columns only) so they load instantly and work offline. Each shows a different failure signature.</p>
+            </div>
+            <div id="sampleList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--space-3)"></div>
+          </section>
+
           <div class="card">
             <div class="section__titles">
               <h2 class="section__title">How it works</h2>
@@ -204,6 +212,7 @@
   </footer>
 
   <script src="app/js/glossary.js"></script>
+  <script src="app/js/samples.js"></script>
   <script src="app/js/parse.js"></script>
   <script src="app/js/analyze.js"></script>
   <script src="app/js/charts.js"></script>

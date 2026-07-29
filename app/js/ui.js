@@ -28,9 +28,30 @@ LS.ui = {
   init() {
     this.renderGlossary('');
     this.renderTutorials();
+    this.renderSamples();
     this.bindEvents();
     this.setTab('upload');
     this.setDataTabsEnabled(false);
+  },
+
+  renderSamples() {
+    const host = $('sampleList');
+    if (!host) return;
+    const samples = window.LS.SAMPLES || [];
+    if (!samples.length) { host.parentElement.hidden = true; return; }
+    host.innerHTML = samples.map((s) => `
+      <button class="card card--interactive" type="button" data-sample="${esc(s.id)}"
+        style="text-align:left;cursor:pointer;color:var(--text-primary);font-family:var(--font);margin:0">
+        <div class="section__title" style="font-size:var(--text-base)">${esc(s.label)}</div>
+        <p class="section__lead" style="margin-top:6px">${esc(s.blurb)}</p>
+        <span class="badge badge--gpu" style="margin-top:10px;display:inline-block">Load sample →</span>
+      </button>`).join('');
+  },
+
+  loadSample(id) {
+    const s = (window.LS.SAMPLES || []).find((x) => x.id === id);
+    if (!s) return;
+    this.ingest(s.csv, s.fileName || (s.label + '.csv'));
   },
 
   bindEvents() {
@@ -55,8 +76,10 @@ LS.ui = {
     // Glossary search
     $('glossarySearch').addEventListener('input', (e) => this.renderGlossary(e.target.value));
 
-    // Delegated: chips + accordion
+    // Delegated: chips + accordion + sample cards
     document.addEventListener('click', (e) => {
+      const sample = e.target.closest('[data-sample]');
+      if (sample) { this.loadSample(sample.dataset.sample); return; }
       const chip = e.target.closest('.chip');
       if (chip && chip.dataset.key) { this.toggleSeries(chip.dataset.key); return; }
       const head = e.target.closest('.acc-head');
@@ -83,31 +106,34 @@ LS.ui = {
   loadFile(file) {
     const reader = new FileReader();
     reader.onerror = () => toast('Could not read that file.');
-    reader.onload = () => {
-      try {
-        const parsed = LS.parseCSV(String(reader.result));
-        const ds = LS.buildDataset(parsed);
-        if (!ds.detectedKeys.length) {
-          toast('Parsed the file but found no known GPU/CPU sensors.');
-        }
-        const zoneInfo = LS.classifyZones(ds);
-        const crash = LS.detectCrash(ds);
-        const insights = LS.buildInsights(ds, zoneInfo, crash);
-        LS.state = { ds, zoneInfo, crash, insights, activeKeys: [], chart: null, fileName: file.name };
-
-        this.renderFileBar(file.name);
-        this.renderOverview();
-        this.renderCharts();
-        this.renderBaselines();
-        this.renderGlossary($('glossarySearch').value);
-        this.setDataTabsEnabled(true);
-        this.setTab('overview');
-        toast(`Loaded ${ds.sampleCount.toLocaleString()} samples · ${ds.detectedKeys.length} sensors`);
-      } catch (err) {
-        toast(err.message || 'Failed to parse the CSV.');
-      }
-    };
+    reader.onload = () => this.ingest(String(reader.result), file.name);
     reader.readAsText(file);
+  },
+
+  /** Core: parse CSV text, analyze, and render every view. */
+  ingest(text, name) {
+    try {
+      const parsed = LS.parseCSV(text);
+      const ds = LS.buildDataset(parsed);
+      if (!ds.detectedKeys.length) {
+        toast('Parsed the file but found no known GPU/CPU sensors.');
+      }
+      const zoneInfo = LS.classifyZones(ds);
+      const crash = LS.detectCrash(ds);
+      const insights = LS.buildInsights(ds, zoneInfo, crash);
+      LS.state = { ds, zoneInfo, crash, insights, activeKeys: [], chart: null, fileName: name };
+
+      this.renderFileBar(name);
+      this.renderOverview();
+      this.renderCharts();
+      this.renderBaselines();
+      this.renderGlossary($('glossarySearch').value);
+      this.setDataTabsEnabled(true);
+      this.setTab('overview');
+      toast(`Loaded ${ds.sampleCount.toLocaleString()} samples · ${ds.detectedKeys.length} sensors`);
+    } catch (err) {
+      toast(err.message || 'Failed to parse the CSV.');
+    }
   },
 
   reset() {
@@ -184,11 +210,14 @@ LS.ui = {
     const active = preferred.filter((k) => ds.metrics[k]).slice(0, 4);
     LS.state.activeKeys = active;
 
-    // Chips for every detected metric.
+    // Chips for every detected metric. `data-tip` shows a short plain-language
+    // definition on hover/focus (e.g. "what's the GPU Hot Spot Temperature?").
     $('chips').innerHTML = ds.detectedKeys.map((k) => {
       const m = ds.metrics[k];
       const on = active.includes(k);
-      return `<button class="chip ${on ? 'active' : ''}" data-key="${k}">
+      const tip = `${m.def.plain} (${m.def.unit || 'count'})`;
+      return `<button class="chip ${on ? 'active' : ''}" data-key="${k}"
+        data-tip="${esc(tip)}" aria-label="${esc(m.def.label)}. ${esc(m.def.plain)}">
         <span class="chip__dot" style="background:${m.def.color}"></span>${esc(m.def.label)}</button>`;
     }).join('');
 

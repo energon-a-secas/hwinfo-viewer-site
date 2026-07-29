@@ -14,6 +14,9 @@ LS.Chart = class Chart {
     this.keys = [];
     this.hoverIndex = -1;
     this._plot = null;
+    this._dsId = 0;
+    this._zoneRuns = null;
+    this._cache = null; // { sig, paths }
     this._onMove = this._onMove.bind(this);
     this._onLeave = this._onLeave.bind(this);
     this._onResize = () => this.draw();
@@ -25,8 +28,11 @@ LS.Chart = class Chart {
   setData(ds, zoneInfo, crash) {
     this.ds = ds; this.zoneInfo = zoneInfo; this.crash = crash;
     this.hoverIndex = -1;
+    this._dsId++;
+    this._cache = null;
+    this._zoneRuns = this._buildZoneRuns();
   }
-  setSeries(keys) { this.keys = keys.slice(); this.draw(); }
+  setSeries(keys) { this.keys = keys.slice(); this._cache = null; this.draw(); }
 
   _sizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
@@ -46,6 +52,76 @@ LS.Chart = class Chart {
     return { lo, hi };
   }
 
+  /** Precompute contiguous load-zone segments as index ranges. */
+  _buildZoneRuns() {
+    if (!this.zoneInfo || this.zoneInfo.basis === 'none') return [];
+    const z = this.zoneInfo.zones;
+    const n = this.ds.sampleCount;
+    const runs = [];
+    let start = 0;
+    for (let i = 1; i <= n; i++) {
+      if (i === n || z[i] !== z[i - 1]) {
+        if (z[start]) runs.push({ from: start, to: i - 1, key: z[start] });
+        start = i;
+      }
+    }
+    return runs;
+  }
+
+  /**
+   * Build screen-space polylines per series, decimated with min/max per
+   * pixel column so large logs (tens of thousands of samples) stay legible
+   * while spikes are preserved. Returns [{color, subpaths:[[{x,y}...]]}].
+   */
+  _buildPaths(geo) {
+    const { x0, plotW, y1, plotH, n } = geo;
+    const xAt = (i) => x0 + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
+    const maxCols = Math.max(1, Math.floor(plotW)); // ~1 bucket per pixel
+    const out = [];
+    for (const key of this.keys) {
+      const m = this.ds.metrics[key];
+      if (!m) continue;
+      const { lo, hi } = this._seriesRange(key);
+      const span = hi - lo || 1;
+      const yAt = (v) => y1 - ((v - lo) / span) * plotH;
+      const subpaths = [];
+      let cur = null;
+      const push = (i, v) => {
+        if (!cur) { cur = []; subpaths.push(cur); }
+        cur.push({ x: xAt(i), y: yAt(v) });
+      };
+      const gap = () => { cur = null; };
+
+      if (n <= maxCols) {
+        for (let i = 0; i < n; i++) {
+          const v = m.values[i];
+          if (!Number.isFinite(v)) { gap(); continue; }
+          push(i, v);
+        }
+      } else {
+        const bucket = n / maxCols;
+        for (let b = 0; b < maxCols; b++) {
+          const s0 = Math.floor(b * bucket);
+          const s1 = Math.min(n, Math.floor((b + 1) * bucket));
+          let minV = Infinity, maxV = -Infinity, minI = -1, maxI = -1, any = false;
+          for (let i = s0; i < s1; i++) {
+            const v = m.values[i];
+            if (!Number.isFinite(v)) continue;
+            any = true;
+            if (v < minV) { minV = v; minI = i; }
+            if (v > maxV) { maxV = v; maxI = i; }
+          }
+          if (!any) { gap(); continue; }
+          // Emit min & max in sample order so the envelope reads left→right.
+          if (minI <= maxI) { push(minI, minV); if (maxI !== minI) push(maxI, maxV); }
+          else { push(maxI, maxV); push(minI, minV); }
+        }
+      }
+      out.push({ color: m.def.color, subpaths });
+    }
+    return out;
+  }
+
   draw() {
     if (!this.ds) return;
     const ctx = this.ctx;
@@ -56,26 +132,22 @@ LS.Chart = class Chart {
     const y0 = PAD.top, y1 = h - PAD.bottom;
     const plotW = x1 - x0, plotH = y1 - y0;
     const xAt = (i) => x0 + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
+    const geo = { x0, x1, y0, y1, plotW, plotH, n };
 
-    // Zone background shading.
-    if (this.zoneInfo && this.zoneInfo.basis !== 'none') {
+    // Zone background shading (from precomputed runs).
+    if (this._zoneRuns && this._zoneRuns.length) {
       const zmap = {};
       LS.LOAD_ZONES.forEach((z) => { zmap[z.key] = z.rgba; });
-      let start = 0;
-      for (let i = 1; i <= n; i++) {
-        const cur = this.zoneInfo.zones[i];
-        const prev = this.zoneInfo.zones[i - 1];
-        if (i === n || cur !== prev) {
-          if (prev && zmap[prev]) {
-            ctx.fillStyle = zmap[prev];
-            ctx.fillRect(xAt(start), y0, xAt(i - 1) - xAt(start) + 1, plotH);
-          }
-          start = i;
-        }
+      for (const r of this._zoneRuns) {
+        const fill = zmap[r.key];
+        if (!fill) continue;
+        ctx.fillStyle = fill;
+        const xa = xAt(r.from), xb = xAt(r.to);
+        ctx.fillRect(xa, y0, Math.max(1, xb - xa + 1), plotH);
       }
     }
 
-    // Grid + axis frame.
+    // Grid.
     ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -85,7 +157,7 @@ LS.Chart = class Chart {
     }
     ctx.stroke();
 
-    // Y labels: 0–100% normalized reference.
+    // Y labels (normalized reference).
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '10px ui-monospace, Menlo, monospace';
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
@@ -103,25 +175,22 @@ LS.Chart = class Chart {
       ctx.fillText(label, Math.min(Math.max(xAt(i), x0 + 16), x1 - 16), y1 + 6);
     }
 
-    // Series (each normalized to its own min/max).
-    for (const key of this.keys) {
-      const m = this.ds.metrics[key];
-      if (!m) continue;
-      const { lo, hi } = this._seriesRange(key);
-      const span = hi - lo || 1;
-      ctx.strokeStyle = m.def.color;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      let started = false;
-      for (let i = 0; i < n; i++) {
-        const v = m.values[i];
-        if (!Number.isFinite(v)) { started = false; continue; }
-        const yy = y1 - ((v - lo) / span) * plotH;
-        const xx = xAt(i);
-        if (!started) { ctx.moveTo(xx, yy); started = true; }
-        else ctx.lineTo(xx, yy);
+    // Series (cached, decimated screen-space polylines).
+    const sig = `${Math.round(plotW)}x${Math.round(plotH)}|${this.keys.join(',')}|${this._dsId}`;
+    if (!this._cache || this._cache.sig !== sig) {
+      this._cache = { sig, paths: this._buildPaths(geo) };
+    }
+    ctx.lineWidth = 1.4;
+    ctx.lineJoin = 'round';
+    for (const p of this._cache.paths) {
+      ctx.strokeStyle = p.color;
+      for (const sub of p.subpaths) {
+        if (!sub.length) continue;
+        ctx.beginPath();
+        ctx.moveTo(sub[0].x, sub[0].y);
+        for (let i = 1; i < sub.length; i++) ctx.lineTo(sub[i].x, sub[i].y);
+        ctx.stroke();
       }
-      ctx.stroke();
     }
 
     // Crash marker.
@@ -139,7 +208,7 @@ LS.Chart = class Chart {
       ctx.fillText('⚑ hang', cx + (cx > w * 0.7 ? -6 : 6), y0 + 2);
     }
 
-    // Hover guide.
+    // Hover guide + dots (full-resolution value at the hovered sample).
     if (this.hoverIndex >= 0 && this.hoverIndex < n) {
       const hx = xAt(this.hoverIndex);
       ctx.strokeStyle = 'rgba(255,255,255,0.35)';

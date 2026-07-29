@@ -679,6 +679,27 @@ button:active,
 
 .container--wide { max-width: 1160px; }
 
+/* ── Readable widths ──────────────────────────────────────────
+ * The wide container is great for charts and tables, but prose and
+ * card blocks get uncomfortably long and hug the left edge on big
+ * screens. Cap the text-heavy views to a centered reading column;
+ * leave Charts and Baselines full-width where the space is needed.
+ */
+.view[data-view="upload"] > .stack { max-width: 860px; }
+.view[data-view="overview"] > .stack { max-width: 1000px; }
+.view[data-view="tutorials"] > .section,
+.view[data-view="translate"] > .section { max-width: 900px; }
+.view[data-view="upload"] > .stack,
+.view[data-view="overview"] > .stack,
+.view[data-view="tutorials"] > .section,
+.view[data-view="translate"] > .section {
+  width: 100%;
+  margin-inline: auto;
+}
+/* Let lead copy fill the narrower column instead of a thin left ribbon. */
+.view[data-view="upload"] .section__lead,
+.view[data-view="overview"] .section__lead { max-width: 64ch; }
+
 /* ── Tabs (view switcher) ──────────────────────────────────── */
 .tabs {
   display: flex;
@@ -846,6 +867,7 @@ button:active,
 /* ── Metric chips (series toggles) ─────────────────────────── */
 .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -865,6 +887,37 @@ button:active,
 .chip.active { color: var(--text-primary); background: var(--surface-2); border-color: var(--border-strong); }
 .chip__dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; opacity: 0.35; }
 .chip.active .chip__dot { opacity: 1; }
+
+/* Hover/focus tooltip: a short "what is this sensor?" note. */
+.chip[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: max-content;
+  max-width: 260px;
+  white-space: normal;
+  text-align: left;
+  background: var(--surface-toast);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast), transform var(--dur-fast);
+  z-index: 20;
+}
+.chip[data-tip]:hover::after,
+.chip[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
 /* ── Data table ────────────────────────────────────────────── */
 .table-scroll { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }

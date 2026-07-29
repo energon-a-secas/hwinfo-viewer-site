@@ -42,6 +42,7 @@ Everything runs client-side; your logs never leave your machine.
 ## Features
 
 - **Local CSV upload** -- drag-and-drop a HWiNFO log; parsing, analysis, and charts all run in the browser, nothing uploaded.
+- **Bundled samples** -- three real (trimmed) crash logs built in — idle freeze, PCIe instability, and crash-under-load — so you can explore the tool with no file of your own.
 - **Auto insights** -- crash/hang detection, PCIe link recovery tracking, 12V rail sag, and thermal checks as ranked cards.
 - **Interactive charts** -- overlay any detected sensors on a normalized time series with load-zone shading and a hang marker.
 - **Load baselines** -- per-zone average/peak for each sensor so you can tell "normal under load" from a real anomaly.
@@ -80,6 +81,7 @@ logscope-site/
 │   │   └── style.css       # Neorgon design system + LogScope styles
 │   └── js/
 │       ├── glossary.js     # Sensor dictionary (detection + translations) + tutorials
+│       ├── samples.js      # Bundled real logs (trimmed to sensor columns) for the demo
 │       ├── parse.js        # CSV parsing, HWiNFO sensor detection, load zones
 │       ├── analyze.js      # Baselines, crash detection, insight generation
 │       ├── charts.js       # Dependency-free canvas time-series chart
