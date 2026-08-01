@@ -727,6 +727,13 @@ button:active,
   background: var(--surface-2);
   border-color: var(--border-strong);
 }
+.tab:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  border: 1px dashed var(--border);
+  background: transparent;
+}
+.tab:disabled:hover { color: var(--text-muted); background: transparent; }
 .tab[hidden] { display: none; }
 
 .view[hidden] { display: none; }
@@ -838,11 +845,12 @@ button:active,
 }
 .chart-canvas {
   width: 100%;
-  height: 340px;
+  height: 420px;
   display: block;
   border-radius: var(--radius-sm);
   touch-action: none;
 }
+@media (max-width: 720px) { .chart-canvas { height: 300px; } }
 .chart-tooltip {
   position: absolute;
   pointer-events: none;
@@ -1072,8 +1080,13 @@ table.data td.wrap { white-space: normal; }
   gap: var(--space-2) var(--space-4);
   font-size: var(--text-sm);
   color: var(--text-secondary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
 }
 .file-meta .dot { color: var(--text-muted); }
+.file-meta[hidden], #resetBtn[hidden] { display: none; }
 .badge {
   display: inline-block;
   padding: 1px 8px;
@@ -1094,4 +1107,239 @@ table.data td.wrap { white-space: normal; }
 
 .muted { color: var(--text-muted); }
 .nowrap { white-space: nowrap; }
+
+/* ── Verdict chip (file bar) ───────────────────────────────── */
+.verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.verdict__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.verdict--critical { background: rgba(225,29,72,0.16); color: #fb7185; border: 1px solid rgba(225,29,72,0.45); }
+.verdict--critical .verdict__dot { background: #fb7185; box-shadow: 0 0 8px rgba(251,113,133,0.9); }
+.verdict--warn { background: rgba(245,158,11,0.14); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4); }
+.verdict--warn .verdict__dot { background: #fbbf24; }
+.verdict--ok { background: rgba(34,197,94,0.13); color: #4ade80; border: 1px solid rgba(34,197,94,0.38); }
+.verdict--ok .verdict__dot { background: #4ade80; }
+
+/* ── Severity summary (overview) ───────────────────────────── */
+.sev-summary { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.sev {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 11px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.sev--critical { border-color: rgba(225,29,72,0.5); color: #fb7185; background: rgba(225,29,72,0.1); }
+.sev--warn { border-color: rgba(245,158,11,0.45); color: #fbbf24; background: rgba(245,158,11,0.09); }
+.sev--ok { border-color: rgba(34,197,94,0.4); color: #4ade80; background: rgba(34,197,94,0.08); }
+.sev--info { border-color: rgba(0,128,255,0.45); color: var(--accent-bright); background: rgba(0,128,255,0.08); }
+
+/* ── How-it-works steps (upload) ───────────────────────────── */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+.step {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  padding-top: calc(var(--space-4) + 10px);
+}
+.step__num {
+  position: absolute;
+  top: -10px;
+  left: var(--space-4);
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #B015B0, #3D0080);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+.step__title { font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.step__text { font-size: var(--text-sm); color: var(--text-muted); line-height: 1.5; }
+
+/* ── Chart zone legend ─────────────────────────────────────── */
+.zone-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.zone-legend__label { font-weight: 600; color: var(--text-secondary); }
+.zone-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.zl-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid var(--border); }
+.zl-idle { background: rgba(148,163,184,0.25); }
+.zl-low { background: rgba(34,197,94,0.25); }
+.zl-medium { background: rgba(245,158,11,0.28); }
+.zl-high { background: rgba(225,29,72,0.28); }
+.zone-legend__sep { width: 1px; height: 14px; background: var(--border); }
+.zl-hang {
+  width: 14px; height: 0;
+  border-top: 2px dashed rgba(251,113,133,0.9);
+  display: inline-block;
+}
+
+/* ── Zone proportion bars (baselines) ──────────────────────── */
+.zone-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+  margin: 4px 0;
+}
+.zone-bar__fill { display: block; height: 100%; border-radius: 999px; }
+.zone-bar__fill.zone-idle { background: #94a3b8; }
+.zone-bar__fill.zone-low { background: #22c55e; }
+.zone-bar__fill.zone-medium { background: #f59e0b; }
+.zone-bar__fill.zone-high { background: #e11d48; }
+
+/* ── Validate: phases & tool cards ─────────────────────────── */
+.view[data-view="validate"] > .stack { max-width: 1080px; width: 100%; margin-inline: auto; }
+
+.phase { display: flex; flex-direction: column; gap: var(--space-4); }
+.phase__head { display: flex; align-items: flex-start; gap: var(--space-4); }
+.phase__num {
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #B015B0, #3D0080);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: var(--text-base);
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(176,21,176,0.35);
+}
+.phase__titles { min-width: 0; padding-top: 2px; }
+.phase__title { font-size: var(--text-lg); font-weight: 600; color: var(--text-primary); }
+.phase__intro { font-size: var(--text-sm); color: var(--text-muted); margin-top: 2px; max-width: 64ch; }
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-3);
+}
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  transition: border-color var(--dur), box-shadow var(--dur);
+}
+.tool-card:hover { border-color: var(--border-strong); box-shadow: 0 8px 20px rgba(15,23,42,0.45); }
+.tool-card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.tool-card__name { font-size: var(--text-base); color: var(--text-primary); }
+.tool-cost {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 1px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.tool-cost--free { border-color: rgba(34,197,94,0.45); color: #4ade80; }
+.tool-cost--paid { border-color: rgba(245,158,11,0.45); color: #fbbf24; }
+.tool-cost--builtin { border-color: rgba(0,128,255,0.45); color: var(--accent-bright); }
+.tool-card__what { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.5; }
+.tool-card__what code, .tool-card__steps code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.tool-card__steps {
+  margin: 0 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.tool-card__steps li { margin-bottom: 4px; }
+.tool-card__proves {
+  margin-top: auto;
+  border-left: 3px solid var(--accent-bright);
+  padding-left: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.tool-card__proves strong { color: var(--text-primary); }
+.tool-card__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.tool-card__ref { font-size: var(--text-xs); color: var(--text-muted); }
+
+/* ── Copyable command chips ────────────────────────────────── */
+.cmd-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.cmd-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--control-height-sm);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0,0,0,0.25);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--dur), background var(--dur);
+}
+.cmd-chip:hover { border-color: var(--accent-bright); background: rgba(0,128,255,0.08); }
+.cmd-chip.copied { border-color: rgba(34,197,94,0.6); }
+.cmd-chip code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.95em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.cmd-chip svg { flex-shrink: 0; color: var(--text-muted); }
+.cmd-chip:hover svg { color: var(--accent-bright); }
+.cmd-chip__note { color: var(--text-muted); margin-left: auto; text-align: right; }
+
+/* ── Xid table ─────────────────────────────────────────────── */
+.xid-points {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.xid-points--software { border-color: rgba(0,128,255,0.45); color: var(--accent-bright); background: rgba(0,128,255,0.08); }
+.xid-points--hardware { border-color: rgba(225,29,72,0.5); color: #fb7185; background: rgba(225,29,72,0.1); }
+.xid-points--power { border-color: rgba(245,158,11,0.45); color: #fbbf24; background: rgba(245,158,11,0.09); }
+
+@media (max-width: 600px) {
+  .cmd-chip { flex-wrap: wrap; }
+  .cmd-chip__note { margin-left: 0; width: 100%; text-align: left; }
+}
 

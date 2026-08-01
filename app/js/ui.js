@@ -24,10 +24,17 @@ function fmtDuration(sec) {
   return `${h}h ${m % 60}m`;
 }
 
+/* HWiNFO writes times like "20:8:34.043" — normalize to HH:MM:SS. */
+function padTime(t) {
+  const parts = String(t).split('.')[0].split(':');
+  return parts.map((p) => p.padStart(2, '0')).join(':');
+}
+
 LS.ui = {
   init() {
     this.renderGlossary('');
     this.renderTutorials();
+    this.renderValidate();
     this.renderSamples();
     this.bindEvents();
     this.setTab('upload');
@@ -76,7 +83,7 @@ LS.ui = {
     // Glossary search
     $('glossarySearch').addEventListener('input', (e) => this.renderGlossary(e.target.value));
 
-    // Delegated: chips + accordion + sample cards
+    // Delegated: chips + accordion + sample cards + copyable commands
     document.addEventListener('click', (e) => {
       const sample = e.target.closest('[data-sample]');
       if (sample) { this.loadSample(sample.dataset.sample); return; }
@@ -84,6 +91,8 @@ LS.ui = {
       if (chip && chip.dataset.key) { this.toggleSeries(chip.dataset.key); return; }
       const head = e.target.closest('.acc-head');
       if (head) { head.parentElement.classList.toggle('open'); return; }
+      const cmd = e.target.closest('[data-cmd]');
+      if (cmd) { this.copyCommand(cmd); return; }
       const reset = e.target.closest('#resetBtn');
       if (reset) this.reset();
     });
@@ -98,7 +107,8 @@ LS.ui = {
   setDataTabsEnabled(on) {
     document.querySelectorAll('.tab[data-requires-data]').forEach((t) => {
       t.disabled = !on;
-      t.hidden = !on;
+      if (on) t.removeAttribute('title');
+      else t.title = 'Load a CSV to unlock';
     });
     $('resetBtn').hidden = !on;
   },
@@ -146,20 +156,43 @@ LS.ui = {
 
   renderFileBar(name) {
     const ds = LS.state.ds;
+    const crash = LS.state.crash;
     const bar = $('fileBar');
     bar.hidden = false;
+
+    let vCls = 'ok', vTxt = 'No hang signature';
+    if (crash.crashed) {
+      vCls = 'critical';
+      vTxt = crash.kind === 'dropout' ? 'GPU dropped off the bus' : 'GPU froze';
+      if (crash.time) vTxt += ` ~${padTime(crash.time)}`;
+    } else if (crash.kind === 'endedUnderLoad') {
+      vCls = 'warn';
+      vTxt = 'Log ended mid-load';
+    }
+
     bar.innerHTML = `
-      <span class="badge badge--gpu">CSV</span>
+      <span class="verdict verdict--${vCls}"><span class="verdict__dot"></span>${esc(vTxt)}</span>
       <strong>${esc(name)}</strong>
       <span class="dot">·</span> ${ds.sampleCount.toLocaleString()} samples
       <span class="dot">·</span> ${fmtDuration(ds.durationSec)}
       <span class="dot">·</span> ~${LS.fmt(ds.interval)}s interval
-      <span class="dot">·</span> ${ds.detectedKeys.length} sensors detected`;
+      <span class="dot">·</span> ${ds.detectedKeys.length} series`;
   },
 
   // ── Overview ──────────────────────────────────────────────
   renderOverview() {
     const { ds, insights } = LS.state;
+    // Severity tally so the read takes one glance.
+    const counts = { critical: 0, warn: 0, info: 0, ok: 0 };
+    insights.forEach((it) => { counts[it.severity] = (counts[it.severity] || 0) + 1; });
+    const labels = { critical: ['critical', 'critical'], warn: ['warning', 'warnings'], info: ['tip', 'tips'], ok: ['clear', 'clear'] };
+    const sum = $('insightSummary');
+    if (sum) {
+      sum.innerHTML = Object.keys(counts)
+        .filter((k) => counts[k])
+        .map((k) => `<span class="sev sev--${k}">${counts[k]} ${labels[k][counts[k] === 1 ? 0 : 1]}</span>`)
+        .join('');
+    }
     // Insights
     const iconFor = { critical: '✕', warn: '!', ok: '✓', info: 'i' };
     $('insights').innerHTML = insights.map((it) => `
@@ -185,7 +218,9 @@ LS.ui = {
     pushMetric('gpuJunction', 'max', 'Peak VRAM temp', (v) => v >= 95 ? 'warn' : 'ok');
     pushMetric('gpuHotspot', 'max', 'Peak hot spot', (v) => v >= 110 ? 'bad' : 'ok');
     pushMetric('gpuPower', 'max', 'Peak GPU power', '');
+    pushMetric('sysPower', 'max', 'Peak system draw', '');
     pushMetric('gpu12vhpwr', 'min', 'Min 12V rail', (v) => v < 11.4 ? 'bad' : 'ok');
+    pushMetric('mobo12v', 'min', 'Min board +12V', (v) => v < 11.4 ? 'bad' : v > 12.6 ? 'warn' : 'ok');
     pushMetric('gpuVcore', 'max', 'Peak core voltage', '');
     pushMetric('gpuClock', 'max', 'Peak core clock', '');
     pushMetric('gpuLoad', 'avg', 'Avg GPU load', '');
@@ -247,6 +282,7 @@ LS.ui = {
       return `<div class="stat">
         <div class="stat__label"><span class="zone-pill ${z.cls}">${z.label}</span></div>
         <div class="stat__value">${pct}<span class="unit">%</span></div>
+        <div class="zone-bar"><span class="zone-bar__fill ${z.cls}" style="width:${Math.max(2, +pct)}%"></span></div>
         <div class="stat__sub">${c.toLocaleString()} samples · load ${z.min}–${z.max === 101 ? 100 : z.max}%</div>
       </div>`;
     }).join('');
@@ -309,5 +345,81 @@ LS.ui = {
           <div class="look-for"><strong>What to look for:</strong> ${t.lookFor}</div>
         </div></div>
       </div>`).join('');
+  },
+
+  // ── Validate (toolkit guide) ──────────────────────────────
+  renderValidate() {
+    const root = $('validateRoot');
+    if (!root || !LS.VALIDATE) return;
+    const costCls = { free: 'free', paid: 'paid', 'built-in': 'builtin' };
+    const costTxt = { free: 'Free', paid: 'Paid', 'built-in': 'Built-in' };
+    const toolCard = (t) => `
+      <div class="tool-card">
+        <div class="tool-card__head">
+          <strong class="tool-card__name">${esc(t.name)}</strong>
+          <span class="tool-cost tool-cost--${costCls[t.cost] || 'free'}">${costTxt[t.cost] || esc(t.cost)}</span>
+        </div>
+        <p class="tool-card__what">${t.what}</p>
+        ${t.steps ? `<ul class="tool-card__steps">${t.steps.map((s) => `<li>${s}</li>`).join('')}</ul>` : ''}
+        ${t.commands ? `<div class="cmd-list">${t.commands.map((c) => `
+          <button class="cmd-chip" type="button" data-cmd="${esc(c.cmd)}" title="Copy command">
+            <code>${esc(c.cmd)}</code>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span class="cmd-chip__note">${esc(c.note)}</span>
+          </button>`).join('')}</div>` : ''}
+        <div class="tool-card__proves"><strong>Proves:</strong> ${t.proves}</div>
+        <div class="tool-card__foot">
+          ${t.url ? `<a class="btn btn--ghost btn--sm" href="${esc(t.url)}" target="_blank" rel="noopener noreferrer">Official site ↗</a>` : ''}
+          ${t.tutorial ? '<span class="tool-card__ref">Full steps in the Tutorials tab</span>' : ''}
+        </div>
+      </div>`;
+    root.innerHTML = LS.VALIDATE.phases.map((p, pi) => `
+      <section class="phase">
+        <div class="phase__head">
+          <span class="phase__num">${pi + 1}</span>
+          <div class="phase__titles">
+            <h3 class="phase__title">${esc(p.title)}</h3>
+            <p class="phase__intro">${esc(p.intro)}</p>
+          </div>
+        </div>
+        <div class="tool-grid">${p.tools.map(toolCard).join('')}</div>
+      </section>`).join('');
+
+    const xidHost = $('xidTable');
+    if (xidHost) {
+      const pointsChip = {
+        software: '<span class="xid-points xid-points--software">software</span>',
+        hardware: '<span class="xid-points xid-points--hardware">hardware</span>',
+        power: '<span class="xid-points xid-points--power">power / link</span>',
+      };
+      xidHost.innerHTML = LS.VALIDATE.xid.map((x) => `
+        <tr>
+          <td class="metric-name nowrap">Xid ${esc(x.code)}</td>
+          <td class="wrap">${esc(x.meaning)}</td>
+          <td>${pointsChip[x.points] || ''}</td>
+          <td class="wrap muted">${esc(x.note)}</td>
+        </tr>`).join('');
+    }
+  },
+
+  copyCommand(el) {
+    const text = el.dataset.cmd;
+    const done = () => { el.classList.add('copied'); setTimeout(() => el.classList.remove('copied'), 1200); toast('Command copied'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => this._copyFallback(text, done));
+    } else {
+      this._copyFallback(text, done);
+    }
+  },
+
+  _copyFallback(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed — select it manually'); }
+    document.body.removeChild(ta);
   },
 };

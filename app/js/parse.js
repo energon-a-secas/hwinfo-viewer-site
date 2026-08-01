@@ -149,6 +149,25 @@ LS.buildDataset = function buildDataset(parsed) {
     };
   }
 
+  // Derived series: combined CPU+GPU draw (UPS/PSU sizing evidence).
+  if (metrics.gpuPower && metrics.cpuPower) {
+    const def = LS.SENSOR_DEFS.find((d) => d.key === 'sysPower');
+    if (def) {
+      const g = metrics.gpuPower.values, c = metrics.cpuPower.values;
+      const values = new Array(rows.length);
+      for (let i = 0; i < rows.length; i++) {
+        const gv = g[i], cv = c[i];
+        values[i] = Number.isFinite(gv) && Number.isFinite(cv) ? gv + cv
+          : Number.isFinite(gv) ? gv
+          : Number.isFinite(cv) ? cv : NaN;
+      }
+      metrics.sysPower = {
+        def, colIndex: -1, rawHeader: 'CPU package + GPU board (derived)',
+        values, stats: computeStats(values),
+      };
+    }
+  }
+
   return {
     headers, rows, times, timeSec,
     sampleCount: rows.length,

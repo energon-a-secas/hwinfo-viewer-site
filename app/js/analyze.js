@@ -168,6 +168,65 @@ LS.buildInsights = function buildInsights(ds, zoneInfo, crash) {
     }
   }
 
+  // 3b. Why clocks were held back: performance-limit flags.
+  const LIMIT_FLAGS = [
+    ['perfLimitPower', 'power'],
+    ['perfLimitThermal', 'thermal'],
+    ['perfLimitVoltage', 'voltage'],
+    ['perfLimitUtil', 'utilization'],
+  ];
+  const flagPct = (key) => {
+    const m = M[key];
+    if (!m) return NaN;
+    let on = 0, tot = 0;
+    for (let i = 0; i < ds.sampleCount; i++) {
+      const z = zoneInfo.zones && zoneInfo.zones[i];
+      if (zoneInfo.basis !== 'none' && z && z !== 'medium' && z !== 'high') continue;
+      const v = m.values[i];
+      if (!Number.isFinite(v)) continue;
+      tot++;
+      if (v >= 0.5) on++;
+    }
+    return tot ? (on / tot) * 100 : NaN;
+  };
+  const flagScope = zoneInfo.basis !== 'none' ? 'of medium/high-load time' : 'of logged time';
+  const pcts = Object.fromEntries(LIMIT_FLAGS.map(([k, n]) => [n, flagPct(k)]));
+  if (Number.isFinite(pcts.thermal) && pcts.thermal >= 5) {
+    add('warn', 'Thermal limit was capping clocks',
+      `The thermal performance-limit flag was active <strong>${fmt(pcts.thermal)}%</strong> ${flagScope}. Clocks did not just dip — the card was heat-capped. Check which sensor tripped it (core, hot spot, or VRAM junction) and improve cooling before suspecting silicon.`);
+  }
+  if (Number.isFinite(pcts.power) && pcts.power >= 50) {
+    add('info', 'Power limit did the clock-capping',
+      `The power performance-limit flag was active <strong>${fmt(pcts.power)}%</strong> ${flagScope}${Number.isFinite(pcts.voltage) ? ` (voltage limit ${fmt(pcts.voltage)}%)` : ''}. Boosting into the power wall is normal — but if clocks <em>collapsed</em> rather than settled, the card was starved: reseat the 12VHPWR cable, try another PSU cable, and check the rail voltages here.`);
+  } else if (Number.isFinite(pcts.power) || Number.isFinite(pcts.thermal) || Number.isFinite(pcts.voltage)) {
+    const parts = LIMIT_FLAGS.filter(([k, n]) => Number.isFinite(pcts[n])).map(([k, n]) => `${n} ${fmt(pcts[n])}%`).join(' · ');
+    add('info', 'Limit flags read', `Time each performance-limit flag was active (${flagScope}): <strong>${parts}</strong>. Nothing here looks forced — the card boosted within its design budget.`);
+  } else if (M.gpuClock && ds.detectedKeys.length) {
+    add('info', 'No performance-limit flags in this log',
+      'HWiNFO can log <strong>GPU Performance Limit</strong> flags (power / thermal / voltage / utilization) — enable them in sensor settings and re-log. They tell you <em>why</em> the clock dropped, not just that it dropped.');
+  }
+
+  // 3c. Motherboard rails: PSU/UPS-side evidence.
+  if (M.mobo12v && Number.isFinite(M.mobo12v.stats.min)) {
+    const lo = M.mobo12v.stats.min, hi = M.mobo12v.stats.max;
+    if (lo < 11.4) {
+      add('critical', 'Motherboard +12V rail sagged',
+        `The board's +12V rail dropped to <strong>${lo.toFixed(2)} V</strong> (ATX allows 11.4–12.6 V). A board-level sag points at the <strong>PSU or the UPS</strong> feeding it — not the GPU. If the 12VHPWR rail dipped at the same moment, the source is the prime suspect.`);
+    } else if (hi > 12.6) {
+      add('warn', '+12V rail ran high',
+        `The board's +12V rail peaked at <strong>${hi.toFixed(2)} V</strong>, above the 12.6 V ATX ceiling. Unusual — suspect the PSU or a misreading sensor; cross-check with a multimeter or another monitoring tool.`);
+    }
+  }
+
+  // 3d. Combined CPU+GPU draw (transient/UPS evidence).
+  if (M.sysPower) {
+    const peak = M.sysPower.stats.max;
+    const hiZone = LS.perZoneStats(ds, zoneInfo, 'sysPower').high;
+    const hiTxt = hiZone.count ? `, averaging <strong>${fmt(hiZone.avg)} W</strong> in the high-load zone` : '';
+    add('info', 'Peak system draw',
+      `CPU + GPU together peaked at <strong>${fmt(peak)} W</strong>${hiTxt}. Transient spikes run well above these 1-second averages — if the PC died on a UPS, compare this draw against the UPS watt rating, not just the VA figure.`);
+  }
+
   // 4. Thermals.
   if (M.gpuHotspot && M.gpuHotspot.stats.max >= 110) {
     add('critical', 'Hot spot very high', `Peak hot spot <strong>${fmt(M.gpuHotspot.stats.max)} °C</strong>. Over ~110 °C suggests poor die contact or dried thermal paste.`);

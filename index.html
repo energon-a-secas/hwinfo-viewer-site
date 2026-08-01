@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LogScope | HWiNFO log visualizer</title>
-  <meta name="description" content="Drop a HWiNFO CSV to visualize GPU sensors, compare load baselines, translate cryptic metrics, and spot the crash — all in your browser, nothing uploaded">
-  <meta property="og:title" content="LogScope: HWiNFO log visualizer">
-  <meta property="og:description" content="Visualize hardware logs, compare load baselines, and find the crash — 100% local in your browser">
+  <title>HWiNFO Viewer | Log visualizer & PC validation</title>
+  <meta name="description" content="Drop a HWiNFO CSV to visualize GPU sensors, spot the crash, read performance-limit flags, and follow a phased toolkit to validate your whole PC — all in your browser, nothing uploaded">
+  <meta property="og:title" content="HWiNFO Viewer: sensor log visualizer & PC validation toolkit">
+  <meta property="og:description" content="Visualize hardware logs, find the crash, then prove it — stress tests, Xid codes, and RMA evidence. 100% local in your browser">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://logscope.neorgon.com/">
+  <meta property="og:url" content="https://hwinfo.neorgon.com/">
   <meta property="og:site_name" content="Neorgon">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="LogScope: HWiNFO log visualizer">
-  <meta name="twitter:description" content="Visualize hardware logs and find the crash, all in your browser">
+  <meta name="twitter:title" content="HWiNFO Viewer: sensor log visualizer & PC validation toolkit">
+  <meta name="twitter:description" content="Visualize hardware logs, find the crash, then prove it — all in your browser">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://logscope.neorgon.com/">
+  <link rel="canonical" href="https://hwinfo.neorgon.com/">
   <meta property="og:locale" content="en_US">
   <meta name="theme-color" content="#040714">
   <link rel="icon" type="image/x-icon" href="https://pub-b597cd281a384f98a47e1f043a6c4160.r2.dev/v1.0.0/favicon.ico" />
@@ -23,9 +23,9 @@
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "LogScope",
-    "description": "Browser-based HWiNFO CSV log visualizer with load baselines, metric translation, and GPU crash detection.",
-    "url": "https://logscope.neorgon.com/",
+    "name": "HWiNFO Viewer",
+    "description": "Browser-based HWiNFO CSV log visualizer with load baselines, crash detection, performance-limit analysis, and a phased PC validation toolkit.",
+    "url": "https://hwinfo.neorgon.com/",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Any",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -43,8 +43,8 @@
         <img src="https://pub-b597cd281a384f98a47e1f043a6c4160.r2.dev/v1.0.0/energon-classic-logo.png" class="header-logo-img" alt="Logo">
       </a>
       <a href="./" class="header-title-link">
-        <h1>LogScope</h1>
-        <div class="header-subtitle">HWiNFO log visualizer &amp; crash insights</div>
+        <h1>HWiNFO Viewer</h1>
+        <div class="header-subtitle">Sensor logs · crash insights · validation toolkit</div>
       </a>
     </div>
     <a class="header-home" href="https://neorgon.com/" title="neorgon.com" aria-label="Neorgon home">
@@ -63,11 +63,12 @@
       <!-- Tabs -->
       <nav class="tabs" aria-label="Views">
         <button class="tab active" data-view="upload">Upload</button>
-        <button class="tab" data-view="overview" data-requires-data hidden disabled>Overview</button>
-        <button class="tab" data-view="charts" data-requires-data hidden disabled>Charts</button>
-        <button class="tab" data-view="baselines" data-requires-data hidden disabled>Baselines</button>
+        <button class="tab" data-view="overview" data-requires-data disabled title="Load a CSV to unlock">Overview</button>
+        <button class="tab" data-view="charts" data-requires-data disabled title="Load a CSV to unlock">Charts</button>
+        <button class="tab" data-view="baselines" data-requires-data disabled title="Load a CSV to unlock">Baselines</button>
         <button class="tab" data-view="translate">Translate</button>
         <button class="tab" data-view="tutorials">Tutorials</button>
+        <button class="tab" data-view="validate">Validate</button>
         <button class="btn btn--ghost btn--sm" id="resetBtn" style="margin-left:auto" hidden>Load another</button>
       </nav>
 
@@ -85,23 +86,39 @@
 
           <section class="section">
             <div class="section__titles">
+              <h2 class="section__title">How it works</h2>
+            </div>
+            <div class="steps">
+              <div class="step">
+                <span class="step__num">1</span>
+                <div class="step__title">Log it</div>
+                <p class="step__text">HWiNFO sensors-only, 1s polling, reproduce the problem. Add RTSS for framerate.</p>
+              </div>
+              <div class="step">
+                <span class="step__num">2</span>
+                <div class="step__title">Read the verdict</div>
+                <p class="step__text">Overview flags the crash signature, rail sags, and why clocks dropped.</p>
+              </div>
+              <div class="step">
+                <span class="step__num">3</span>
+                <div class="step__title">Confirm it</div>
+                <p class="step__text">Charts and Baselines show the exact moment and what "normal under load" looks like.</p>
+              </div>
+              <div class="step">
+                <span class="step__num">4</span>
+                <div class="step__title">Prove it</div>
+                <p class="step__text">The Validate tab walks you through stress tests, Xid codes, and RMA evidence.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section__titles">
               <h2 class="section__title">No log handy? Try a real one</h2>
               <p class="section__lead">These are trimmed from actual HWiNFO crash logs (sensor columns only) so they load instantly and work offline. Each shows a different failure signature.</p>
             </div>
             <div id="sampleList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--space-3)"></div>
           </section>
-
-          <div class="card">
-            <div class="section__titles">
-              <h2 class="section__title">How it works</h2>
-              <p class="section__lead">
-                LogScope reads a HWiNFO sensor log, auto-detects the GPU/CPU/PCIe metrics, and gives you four things:
-                an <strong>Overview</strong> with plain-language insights and a crash verdict, interactive <strong>Charts</strong>,
-                <strong>Baselines</strong> that bucket samples into idle/low/medium/high load, and a <strong>Translate</strong> glossary.
-                New to the tools? Start with the <strong>Tutorials</strong> tab.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -113,6 +130,7 @@
               <h2 class="section__title">Insights</h2>
               <p class="section__lead">Automatic read of the log: crash signature, PCIe stability, power delivery, and thermals.</p>
             </div>
+            <div class="sev-summary" id="insightSummary"></div>
             <div id="insights"></div>
           </section>
           <section class="section">
@@ -132,7 +150,7 @@
             <h2 class="section__title">Time series</h2>
             <p class="section__lead">
               Each line is normalized to its own range (0–100% of that sensor's min–max), so different units overlay cleanly.
-              Background shading shows the load zone; the dashed marker is where a hang was detected. Hover for exact values.
+              Hover for exact values.
             </p>
           </div>
           <div class="chips" id="chips"></div>
@@ -140,6 +158,15 @@
             <div class="chart-wrap">
               <canvas class="chart-canvas" id="chartCanvas"></canvas>
               <div class="chart-tooltip" id="chartTooltip"></div>
+            </div>
+            <div class="zone-legend" aria-hidden="true">
+              <span class="zone-legend__label">Load zones:</span>
+              <span class="zone-legend__item"><i class="zl-swatch zl-idle"></i>idle</span>
+              <span class="zone-legend__item"><i class="zl-swatch zl-low"></i>low</span>
+              <span class="zone-legend__item"><i class="zl-swatch zl-medium"></i>medium</span>
+              <span class="zone-legend__item"><i class="zl-swatch zl-high"></i>high</span>
+              <span class="zone-legend__sep"></span>
+              <span class="zone-legend__item"><i class="zl-hang"></i>hang marker</span>
             </div>
           </div>
         </section>
@@ -183,7 +210,7 @@
             <h2 class="section__title">Translate the metrics</h2>
             <p class="section__lead">What every sensor actually means, what's normal, and what should worry you. Load a log and matching rows get tagged <span class="badge badge--gpu">detected</span> with your values.</p>
           </div>
-          <input type="search" class="search-input" id="glossarySearch" placeholder="Search metrics… (e.g. junction, 12V, recovery)">
+          <input type="search" class="search-input" id="glossarySearch" placeholder="Search metrics… (e.g. junction, 12V, performance limit)">
           <div class="table-scroll">
             <table class="data">
               <thead><tr><th>Sensor</th><th>Plain meaning</th><th>Normal &amp; red flags</th></tr></thead>
@@ -198,10 +225,42 @@
         <section class="section">
           <div class="section__titles">
             <h2 class="section__title">Tool tutorials</h2>
-            <p class="section__lead">Short, no-fluff guides for the tools that produce and confirm these logs. Each ends with the one thing to look for.</p>
+            <p class="section__lead">Short, no-fluff guides for the tools that produce and confirm these logs. Each ends with the one thing to look for. For the full validation workflow, see the <strong>Validate</strong> tab.</p>
           </div>
           <div class="accordion" id="tutorials"></div>
         </section>
+      </section>
+
+      <!-- ── Validate view ── -->
+      <section class="view" data-view="validate" hidden aria-label="Validate">
+        <div class="stack">
+          <section class="section">
+            <div class="section__titles">
+              <h2 class="section__title">The validation toolkit</h2>
+              <p class="section__lead">
+                A phased workflow for testing and validating your PC — from capturing the log to an RMA-grade
+                evidence pack. Every tool states what it actually proves, so you know when you're done.
+              </p>
+            </div>
+            <div id="validateRoot" class="stack"></div>
+          </section>
+          <section class="section">
+            <div class="section__titles">
+              <h2 class="section__title">NVIDIA Xid codes worth knowing</h2>
+              <p class="section__lead">
+                When the driver reports a hardware error it logs an <strong>Xid</strong> code — find them in
+                Windows Event Viewer (source <code>nvlddmkm</code>) or <code>journalctl -k</code> on Linux.
+                These are the ones that matter for a crash investigation.
+              </p>
+            </div>
+            <div class="table-scroll">
+              <table class="data">
+                <thead><tr><th>Code</th><th>Meaning</th><th>Points to</th><th>Notes</th></tr></thead>
+                <tbody id="xidTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </section>
 
     </div>
@@ -216,6 +275,7 @@
   <script src="app/js/parse.js"></script>
   <script src="app/js/analyze.js"></script>
   <script src="app/js/charts.js"></script>
+  <script src="app/js/validate.js"></script>
   <script src="app/js/ui.js"></script>
   <script src="app/js/app.js"></script>
 </body>

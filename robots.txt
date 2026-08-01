@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://logscope.neorgon.com/sitemap.xml
+Sitemap: https://hwinfo.neorgon.com/sitemap.xml
