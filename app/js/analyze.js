@@ -123,20 +123,20 @@ LS.buildInsights = function buildInsights(ds, zoneInfo, crash) {
   // 1. Crash / hang signature.
   const at = crash.time ? `~${crash.time.split('.')[0]}` : 'the end of the log';
   if (crash.kind === 'dropout') {
-    let desc = `GPU sensors <strong>stopped reporting</strong> near <strong>${at}</strong> while the rest of the log kept going — HWiNFO could no longer read the card.`;
-    if (crash.cpuAlive === true) desc += ' The <strong>CPU kept logging</strong> through it, so the PC stayed alive while the GPU dropped off the bus — a hard GPU hang, not heat or software.';
+    let desc = `GPU sensors <strong>stopped reporting</strong> near <strong>${at}</strong> while the rest of the log kept going, HWiNFO could no longer read the card.`;
+    if (crash.cpuAlive === true) desc += ' The <strong>CPU kept logging</strong> through it, so the PC stayed alive while the GPU dropped off the bus. A hard GPU hang, not heat or software.';
     add('critical', 'GPU stopped responding', desc);
   } else if (crash.kind === 'freeze') {
     const sev = crash.cpuAlive === true ? 'critical' : 'warn';
-    let desc = `Just before the log ends (<strong>${at}</strong>), GPU load, power, temperature and framerate <strong>flatlined</strong> after moving normally — a frozen-frame signature.`;
-    if (crash.cpuAlive === true) desc += ' The <strong>CPU kept updating</strong> through the freeze, so the machine stayed alive while the GPU locked — the classic hardware hang.';
-    desc += ' <em>Caveat: if you just stopped logging after the GPU went idle, this can be a false alarm — confirm the timestamp in Event Viewer.</em>';
+    let desc = `Just before the log ends (<strong>${at}</strong>), GPU load, power, temperature and framerate <strong>flatlined</strong> after moving normally. A frozen-frame signature.`;
+    if (crash.cpuAlive === true) desc += ' The <strong>CPU kept updating</strong> through the freeze, so the machine stayed alive while the GPU locked. The classic hardware hang.';
+    desc += ' <em>Caveat: if you just stopped logging after the GPU went idle, this can be a false alarm, confirm the timestamp in Event Viewer.</em>';
     add(sev, 'GPU froze at end of log', desc);
   } else if (crash.kind === 'endedUnderLoad') {
     add('warn', 'Log ended mid-load',
-      `The log stops abruptly at <strong>${at}</strong> while the GPU was still under load, with no wind-down. If a crash happened here it killed HWiNFO too — which is itself consistent with a hard crash or reboot. Cross-check the time in Event Viewer / Reliability Monitor.`);
+      `The log stops abruptly at <strong>${at}</strong> while the GPU was still under load, with no wind-down. If a crash happened here it killed HWiNFO too, which is itself consistent with a hard crash or reboot. Cross-check the time in Event Viewer / Reliability Monitor.`);
   } else {
-    add('ok', 'No hang signature', 'Sensors kept updating and wound down normally. If a crash happened, it was after logging stopped — use a 1s polling interval and confirm logging was running at crash time.');
+    add('ok', 'No hang signature', 'Sensors kept updating and wound down normally. If a crash happened, it was after logging stopped, use a 1s polling interval and confirm logging was running at crash time.');
   }
 
   // 2. PCIe link stability.
@@ -158,7 +158,7 @@ LS.buildInsights = function buildInsights(ds, zoneInfo, crash) {
   // 3. Power delivery.
   if (M.gpu12vhpwr && Number.isFinite(M.gpu12vhpwr.stats.min) && M.gpu12vhpwr.stats.min < 11.4) {
     add('critical', '12V rail sagged',
-      `The 12VHPWR/PCIe rail dropped to <strong>${M.gpu12vhpwr.stats.min.toFixed(2)} V</strong> (should stay near 12 V). Check the connector is fully seated and try a different PSU cable — under-volt on this rail is a known 40/50-series failure point.`);
+      `The 12VHPWR/PCIe rail dropped to <strong>${M.gpu12vhpwr.stats.min.toFixed(2)} V</strong> (should stay near 12 V). Check the connector is fully seated and try a different PSU cable, under-volt on this rail is a known 40/50-series failure point.`);
   }
   if (M.gpuPower) {
     const midDrop = detectMidDrop(M.gpuPower.values, ds.sampleCount);
@@ -193,17 +193,17 @@ LS.buildInsights = function buildInsights(ds, zoneInfo, crash) {
   const pcts = Object.fromEntries(LIMIT_FLAGS.map(([k, n]) => [n, flagPct(k)]));
   if (Number.isFinite(pcts.thermal) && pcts.thermal >= 5) {
     add('warn', 'Thermal limit was capping clocks',
-      `The thermal performance-limit flag was active <strong>${fmt(pcts.thermal)}%</strong> ${flagScope}. Clocks did not just dip — the card was heat-capped. Check which sensor tripped it (core, hot spot, or VRAM junction) and improve cooling before suspecting silicon.`);
+      `The thermal performance-limit flag was active <strong>${fmt(pcts.thermal)}%</strong> ${flagScope}. Clocks did not just dip. The card was heat-capped. Check which sensor tripped it (core, hot spot, or VRAM junction) and improve cooling before suspecting silicon.`);
   }
   if (Number.isFinite(pcts.power) && pcts.power >= 50) {
     add('info', 'Power limit did the clock-capping',
-      `The power performance-limit flag was active <strong>${fmt(pcts.power)}%</strong> ${flagScope}${Number.isFinite(pcts.voltage) ? ` (voltage limit ${fmt(pcts.voltage)}%)` : ''}. Boosting into the power wall is normal — but if clocks <em>collapsed</em> rather than settled, the card was starved: reseat the 12VHPWR cable, try another PSU cable, and check the rail voltages here.`);
+      `The power performance-limit flag was active <strong>${fmt(pcts.power)}%</strong> ${flagScope}${Number.isFinite(pcts.voltage) ? ` (voltage limit ${fmt(pcts.voltage)}%)` : ''}. Boosting into the power wall is normal, but if clocks <em>collapsed</em> rather than settled, the card was starved: reseat the 12VHPWR cable, try another PSU cable, and check the rail voltages here.`);
   } else if (Number.isFinite(pcts.power) || Number.isFinite(pcts.thermal) || Number.isFinite(pcts.voltage)) {
     const parts = LIMIT_FLAGS.filter(([k, n]) => Number.isFinite(pcts[n])).map(([k, n]) => `${n} ${fmt(pcts[n])}%`).join(' · ');
-    add('info', 'Limit flags read', `Time each performance-limit flag was active (${flagScope}): <strong>${parts}</strong>. Nothing here looks forced — the card boosted within its design budget.`);
+    add('info', 'Limit flags read', `Time each performance-limit flag was active (${flagScope}): <strong>${parts}</strong>. Nothing here looks forced. The card boosted within its design budget.`);
   } else if (M.gpuClock && ds.detectedKeys.length) {
     add('info', 'No performance-limit flags in this log',
-      'HWiNFO can log <strong>GPU Performance Limit</strong> flags (power / thermal / voltage / utilization) — enable them in sensor settings and re-log. They tell you <em>why</em> the clock dropped, not just that it dropped.');
+      'HWiNFO can log <strong>GPU Performance Limit</strong> flags (power / thermal / voltage / utilization), enable them in sensor settings and re-log. They tell you <em>why</em> the clock dropped, not just that it dropped.');
   }
 
   // 3c. Motherboard rails: PSU/UPS-side evidence.
@@ -211,10 +211,10 @@ LS.buildInsights = function buildInsights(ds, zoneInfo, crash) {
     const lo = M.mobo12v.stats.min, hi = M.mobo12v.stats.max;
     if (lo < 11.4) {
       add('critical', 'Motherboard +12V rail sagged',
-        `The board's +12V rail dropped to <strong>${lo.toFixed(2)} V</strong> (ATX allows 11.4–12.6 V). A board-level sag points at the <strong>PSU or the UPS</strong> feeding it — not the GPU. If the 12VHPWR rail dipped at the same moment, the source is the prime suspect.`);
+        `The board's +12V rail dropped to <strong>${lo.toFixed(2)} V</strong> (ATX allows 11.4–12.6 V). A board-level sag points at the <strong>PSU or the UPS</strong> feeding it, not the GPU. If the 12VHPWR rail dipped at the same moment, the source is the prime suspect.`);
     } else if (hi > 12.6) {
       add('warn', '+12V rail ran high',
-        `The board's +12V rail peaked at <strong>${hi.toFixed(2)} V</strong>, above the 12.6 V ATX ceiling. Unusual — suspect the PSU or a misreading sensor; cross-check with a multimeter or another monitoring tool.`);
+        `The board's +12V rail peaked at <strong>${hi.toFixed(2)} V</strong>, above the 12.6 V ATX ceiling. Unusual, suspect the PSU or a misreading sensor; cross-check with a multimeter or another monitoring tool.`);
     }
   }
 
@@ -224,7 +224,7 @@ LS.buildInsights = function buildInsights(ds, zoneInfo, crash) {
     const hiZone = LS.perZoneStats(ds, zoneInfo, 'sysPower').high;
     const hiTxt = hiZone.count ? `, averaging <strong>${fmt(hiZone.avg)} W</strong> in the high-load zone` : '';
     add('info', 'Peak system draw',
-      `CPU + GPU together peaked at <strong>${fmt(peak)} W</strong>${hiTxt}. Transient spikes run well above these 1-second averages — if the PC died on a UPS, compare this draw against the UPS watt rating, not just the VA figure.`);
+      `CPU + GPU together peaked at <strong>${fmt(peak)} W</strong>${hiTxt}. Transient spikes run well above these 1-second averages, if the PC died on a UPS, compare this draw against the UPS watt rating, not just the VA figure.`);
   }
 
   // 4. Thermals.
@@ -237,7 +237,7 @@ LS.buildInsights = function buildInsights(ds, zoneInfo, crash) {
   if (M.gpuTemp && M.gpuTemp.stats.max >= 84) {
     add('warn', 'Core hit throttle range', `Core temp peaked at <strong>${fmt(M.gpuTemp.stats.max)} °C</strong>, near the throttle point. Not a crash cause on its own, but worth improving airflow.`);
   } else if (M.gpuTemp) {
-    add('ok', 'Temperatures look fine', `Core peaked at <strong>${fmt(M.gpuTemp.stats.max)} °C</strong> — comfortably below throttle. Heat is unlikely to be the crash cause.`);
+    add('ok', 'Temperatures look fine', `Core peaked at <strong>${fmt(M.gpuTemp.stats.max)} °C</strong>, comfortably below throttle. Heat is unlikely to be the crash cause.`);
   }
 
   // 5. FPS availability tip.
@@ -270,7 +270,7 @@ function detectMidDrop(values, n) {
 }
 
 function fmt(n) {
-  if (!Number.isFinite(n)) return '—';
+  if (!Number.isFinite(n)) return '-';
   if (Math.abs(n) >= 100) return Math.round(n).toLocaleString();
   if (Math.abs(n) >= 10) return n.toFixed(1);
   return n.toFixed(2).replace(/\.?0+$/, '');

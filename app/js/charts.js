@@ -252,7 +252,7 @@ LS.Chart = class Chart {
     for (const key of this.keys) {
       const m = this.ds.metrics[key];
       const v = m.values[i];
-      const val = Number.isFinite(v) ? `${LS.fmt(v)} ${m.def.unit}` : '—';
+      const val = Number.isFinite(v) ? `${LS.fmt(v)} ${m.def.unit}` : '-';
       html += `<div class="tt-row"><span class="tt-dot" style="background:${m.def.color}"></span>${m.def.label}: <strong>${val}</strong></div>`;
     }
     this.tooltip.innerHTML = html;

@@ -17,7 +17,7 @@ function toast(msg) {
 }
 
 function fmtDuration(sec) {
-  if (!Number.isFinite(sec) || sec <= 0) return '—';
+  if (!Number.isFinite(sec) || sec <= 0) return '-';
   const m = Math.floor(sec / 60), s = Math.round(sec % 60);
   if (m < 60) return `${m}m ${s}s`;
   const h = Math.floor(m / 60);
@@ -295,7 +295,7 @@ LS.ui = {
       .map((k) => {
         const per = LS.perZoneStats(ds, zoneInfo, k);
         const m = ds.metrics[k];
-        const cell = (z) => per[z].count ? `${LS.fmt(per[z].avg)} <span class="muted">/ ${LS.fmt(per[z].max)}</span>` : '<span class="muted">—</span>';
+        const cell = (z) => per[z].count ? `${LS.fmt(per[z].avg)} <span class="muted">/ ${LS.fmt(per[z].max)}</span>` : '<span class="muted">-</span>';
         return `<tr>
           <td class="metric-name">${esc(m.def.label)} <span class="muted nowrap">${m.def.unit}</span></td>
           <td>${cell('idle')}</td><td>${cell('low')}</td><td>${cell('medium')}</td><td>${cell('high')}</td>
@@ -419,7 +419,7 @@ LS.ui = {
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed — select it manually'); }
+    try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed: select it manually'); }
     document.body.removeChild(ta);
   },
 };

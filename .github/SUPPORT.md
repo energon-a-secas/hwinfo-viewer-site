@@ -4,7 +4,7 @@ Thanks for using this Neorgon tool. Here is how to get help.
 
 ## Questions & Usage Help
 
-- Check the project [`README.md`](../README.md) first — it covers setup,
+- Check the project [`README.md`](../README.md) first: it covers setup,
   local development, and common commands.
 - Browse existing [issues](../../issues) to see if your question is already answered.
 

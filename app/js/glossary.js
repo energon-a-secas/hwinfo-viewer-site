@@ -58,16 +58,16 @@ LS.SENSOR_DEFS = [
     exclude: ['power', 'current', 'w]'],
     plain: 'Voltage on the 12VHPWR / 12V-2x6 power connector rail.',
     normal: 'Should stay near 12.0 V (11.4–12.6 V).',
-    concern: 'Dipping below ~11.4 V under load points to a bad cable seat, connector, or PSU rail — a known failure area on 40/50-series cards.',
+    concern: 'Dipping below ~11.4 V under load points to a bad cable seat, connector, or PSU rail. A known failure area on 40/50-series cards.',
   },
   // ── Motherboard power rails (PSU/UPS health) ──────────────
   {
     key: 'mobo12v', label: 'Motherboard +12V Rail', unit: 'V', kind: 'power', color: '#fda4af',
     match: [['+12v']],
     exclude: ['gpu', 'pcie', 'hpwr', 'input', 'power', 'current', 'fan'],
-    plain: 'The PSU main 12V rail as read by the motherboard — feeds everything, including the CPU and (via the slot) part of the GPU.',
+    plain: 'The PSU main 12V rail as read by the motherboard, feeds everything, including the CPU and (via the slot) part of the GPU.',
     normal: '11.4–12.6 V (ATX ±5 %), barely moving.',
-    concern: 'A sag below ~11.4 V that lines up with a crash points at the PSU or the UPS feeding it — not the GPU. Cross-check against the 12VHPWR rail: if both dip together, blame the source, not the card.',
+    concern: 'A sag below ~11.4 V that lines up with a crash points at the PSU or the UPS feeding it, not the GPU. Cross-check against the 12VHPWR rail: if both dip together, blame the source, not the card.',
   },
   {
     key: 'mobo5v', label: 'Motherboard +5V Rail', unit: 'V', kind: 'power', color: '#fca5a5',
@@ -91,7 +91,7 @@ LS.SENSOR_DEFS = [
     match: [],
     plain: 'Estimated total draw: CPU package + GPU board power summed per sample. Add ~50–100 W for the rest of the system.',
     normal: 'Idle 50–150 W · gaming commonly 400–800 W on a high-end rig.',
-    concern: 'A peak near or above your PSU/UPS rating explains shutdowns on transients — brief spikes run well above the logged average, and an undersized UPS trips exactly on those.',
+    concern: 'A peak near or above your PSU/UPS rating explains shutdowns on transients, brief spikes run well above the logged average, and an undersized UPS trips exactly on those.',
   },
   // ── GPU clocks / load ─────────────────────────────────────
   {
@@ -152,7 +152,7 @@ LS.SENSOR_DEFS = [
     match: [['link speed'], ['pcie', 'speed']],
     plain: 'Active PCIe generation speed (2.5 / 5 / 8 / 16 / 32 GT/s = Gen1…Gen5).',
     normal: 'Steady at the negotiated max (16 GT/s = Gen4, 32 = Gen5).',
-    concern: 'Flapping between speeds mid-session means the link keeps renegotiating — a stability red flag.',
+    concern: 'Flapping between speeds mid-session means the link keeps renegotiating. A stability red flag.',
   },
   {
     key: 'gpuBusLoad', label: 'GPU Bus Load', unit: '%', kind: 'pcie', color: '#fdba74',
@@ -167,7 +167,7 @@ LS.SENSOR_DEFS = [
     match: [['performance limit', 'power'], ['perfcap', 'power']],
     exclude: ['thermal', 'voltage', 'reliab', 'util'],
     plain: 'Yes/No flag: the card cut clocks because it hit its power budget.',
-    normal: 'Flickers on under boost — modern cards boost straight into the power wall by design.',
+    normal: 'Flickers on under boost: modern cards boost straight into the power wall by design.',
     concern: 'Active most of the time under load = the card is power-starved: power limit set too low, a sagging rail, or a PSU/cable that cannot feed it.',
   },
   {
@@ -182,7 +182,7 @@ LS.SENSOR_DEFS = [
     key: 'perfLimitVoltage', label: 'Perf Limit · Voltage', unit: '', kind: 'limit', color: '#c4b5fd',
     match: [['performance limit', 'voltage'], ['performance limit', 'reliability']],
     exclude: ['power', 'thermal', 'util'],
-    plain: 'Yes/No flag: clocks held back by the voltage/reliability limit (Vrel) — the card reached its allowed voltage.',
+    plain: 'Yes/No flag: clocks held back by the voltage/reliability limit (Vrel). The card reached its allowed voltage.',
     normal: 'Common at max boost on a healthy card.',
     concern: 'Mostly informational; combined with power-limit flags it tells you the card is simply at its design ceiling, not failing.',
   },
@@ -190,9 +190,9 @@ LS.SENSOR_DEFS = [
     key: 'perfLimitUtil', label: 'Perf Limit · Utilization', unit: '', kind: 'limit', color: '#94a3b8',
     match: [['performance limit', 'utilization']],
     exclude: ['power', 'thermal', 'voltage'],
-    plain: 'Yes/No flag: clocks dropped because there was not enough work (utilization limit) — the GPU down-clocked to save power.',
+    plain: 'Yes/No flag: clocks dropped because there was not enough work (utilization limit). The GPU down-clocked to save power.',
     normal: 'Active at idle and in light scenes. Expected.',
-    concern: 'If it is active while a game stutters at low FPS, the GPU is down-clocking when it should be boosting — a driver power-state problem.',
+    concern: 'If it is active while a game stutters at low FPS, the GPU is down-clocking when it should be boosting. A driver power-state problem.',
   },
   // ── Framerate ─────────────────────────────────────────────
   {
@@ -217,7 +217,7 @@ LS.SENSOR_DEFS = [
     match: [['total cpu usage'], ['cpu total'], ['cpu', 'usage', 'total']],
     plain: 'Overall CPU utilization. LogScope uses it to check the PC stayed alive during a GPU freeze.',
     normal: 'Varies wildly by task.',
-    concern: 'If the CPU keeps logging normally while every GPU sensor freezes, the GPU died but the PC did not — a textbook hardware hang.',
+    concern: 'If the CPU keeps logging normally while every GPU sensor freezes, the GPU died but the PC did not. A textbook hardware hang.',
   },
   {
     key: 'cpuTemp', label: 'CPU Package Temperature', unit: '°C', kind: 'cpu', color: '#e879f9',
@@ -253,7 +253,7 @@ LS.TUTORIALS = [
     steps: [
       'Open HWiNFO in <strong>Sensors-only</strong> mode.',
       'Click the <strong>logging</strong> button (the ▶ / floppy icon at the bottom) and pick a CSV path.',
-      'Set the polling interval to <strong>1000 ms</strong> (1s) — fine enough to catch a crash without huge files.',
+      'Set the polling interval to <strong>1000 ms</strong> (1s), fine enough to catch a crash without huge files.',
       'Reproduce the problem (play the game, sit at idle, etc.), then stop logging.',
     ],
     lookFor: 'The <strong>last rows before the file ends</strong>. If GPU sensors freeze at a fixed value or drop to 0 while the timestamp keeps advancing, the GPU hung. Add RTSS so <code>Framerate</code> is logged too.',
@@ -264,7 +264,7 @@ LS.TUTORIALS = [
     steps: [
       'Open the <strong>Sensors</strong> tab.',
       'Run the <strong>PCIe render test</strong> (the "?" button next to Bus Interface) to force the link to full speed.',
-      'Watch <strong>Bus Interface</strong> — it shows the current vs max PCIe generation.',
+      'Watch <strong>Bus Interface</strong>: it shows the current vs max PCIe generation.',
     ],
     lookFor: 'Bus Interface reading a <strong>lower generation than the card supports</strong>, or the "PerfCap Reason" flags. Good for a 30-second sanity check before deep logging.',
   },
@@ -306,6 +306,6 @@ LS.TUTORIALS = [
       'Click a day with a red ✗ to expand the events.',
       'Use <strong>View all problem reports</strong> for the full list.',
     ],
-    lookFor: '<strong>Hardware error</strong> rows and <code>LiveKernelEvent</code> codes (e.g. 141, 1B8). Screenshot these — they are gold for an RMA claim.',
+    lookFor: '<strong>Hardware error</strong> rows and <code>LiveKernelEvent</code> codes (e.g. 141, 1B8). Screenshot these. They are gold for an RMA claim.',
   },
 ];
